@@ -1,0 +1,5 @@
+python manage.py runserver 8888
+python manage.py migrate
+django-admin startapp app
+python manage.py makemigrations app
+python manage.py migrate app
