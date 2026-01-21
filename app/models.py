@@ -1,6 +1,5 @@
 from django.db import models
-from django.conf import settings
-
+from django.conf import settings # Dùng để gọi bảng User mặc định của Django
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -35,6 +34,7 @@ class News(models.Model):
         blank=True,
         related_name="news",
     )
+    # Đây là liên kết với bảng User (Tác giả bài viết)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -81,3 +81,38 @@ class News(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# ==================================================
+# BẢNG MỚI: SAVED NEWS (LƯU TIN)
+# ==================================================
+class SavedNews(models.Model):
+    """
+    Bảng này lưu trữ việc User nào đã lưu Bài viết nào.
+    """
+    # Liên kết với bảng User (ID người dùng)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name="saved_news"
+    )
+    
+    # Liên kết với bảng News (ID bài viết)
+    news = models.ForeignKey(
+        News, 
+        on_delete=models.CASCADE, 
+        related_name="saved_by_users"
+    )
+    
+    # Thời gian lưu
+    saved_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Đảm bảo 1 user không thể lưu 1 bài viết 2 lần
+        unique_together = ('user', 'news') 
+        verbose_name = "Saved News"
+        verbose_name_plural = "Saved News List"
+        ordering = ["-saved_at"]
+
+    def __str__(self):
+        return f"{self.user.username} saved {self.news.title}"

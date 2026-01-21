@@ -1,0 +1,232 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ news.title }}</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap" rel="stylesheet" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet" />
+    <link href="{% static 'lib/slick/slick.css' %}" rel="stylesheet" />
+    <link href="{% static 'lib/slick/slick-theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/style.css' %}" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
+
+  <body>
+    {% include 'header.html' %}
+
+    {% if messages %}
+      <div class="container mt-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="breadcrumb-wrap">
+      <div class="container-fluid">
+        <ul class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a href="{% url 'home' %}">Trang chủ</a>
+          </li>
+          <li class="breadcrumb-item active">{{ news.title }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="single-news">
+      <div class="container-fluid">
+        <div class="row">
+          
+          <div class="col-md-8">
+            <div class="sn-content">
+              <h1 class="sn-title">{{ news.title }}</h1>
+
+              <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <p class="sn-date mb-0">
+                  <i class="far fa-clock"></i> {{ news.created_at|date:'d-m-Y H:i' }}
+                </p>
+
+                <div>
+                  {% if user.is_authenticated %}
+                    <button class="btn btn-outline-warning btn-sm" onclick="saveNews({{ news.id }})" title="Lưu bài viết này"><i class="far fa-bookmark"></i> Lưu tin</button>
+                  {% else %}
+                    <button class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#userAuthModal" title="Đăng nhập để lưu tin"><i class="far fa-bookmark"></i> Lưu tin</button>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <a href="{% url 'summarize_news' news.id %}" class="btn btn-info btn-sm text-white" style="background-color: #17a2b8; border-color: #17a2b8;" onclick="return confirm('Bạn có muốn AI tóm tắt bài viết này không?');"><i class="fas fa-magic mr-1"></i> Tóm tắt bài viết bằng AI</a>
+              </div>
+
+              {% if news.summary %}
+                <div class="alert alert-secondary bg-light border-info" role="alert">
+                  <h5 class="alert-heading text-info"><i class="fas fa-robot"></i> Tóm tắt bởi AI:</h5>
+                  
+                  <p class="mb-2 text-justify" id="summary-content" style="font-style: italic; color: #555;">{{ news.summary }}</p>
+                  
+                  <hr>
+                  
+                  <div class="d-flex align-items-center flex-wrap">
+                    <button class="btn btn-sm btn-outline-info mr-2 mb-2" onclick="playSummary()">
+                        <i class="fas fa-volume-up"></i> Nghe tóm tắt
+                    </button>
+                    
+                    <audio id="audio-player" controls style="display:none; flex-grow: 1; height: 35px;"></audio>
+                  </div>
+                </div>
+              {% endif %}
+              <div class="news-content text-justify">{{ news.content|linebreaks }}</div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="sidebar-widget">
+              <h2><i class="fas fa-align-justify"></i> Chuyên mục</h2>
+              <div class="category">
+                <ul class="fa-ul">
+                  {% for cat in categories %}
+                    <li>
+                      <span class="fa-li"><i class="far fa-arrow-alt-circle-right"></i></span>
+                      <a href="{% url 'category_news' cat.slug %}">
+                        {{ cat.name|to_vietnamese }}
+                      </a>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+
+    {% include 'footer.html' %}
+
+    <a href="#" class="back-to-top"><i class="fa fa-chevron-up"></i></a>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'lib/easing/easing.min.js' %}"></script>
+    <script src="{% static 'lib/slick/slick.min.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+
+    <script>
+      // Hàm hỗ trợ lấy CSRF Token
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + '=') {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      // --- 1. CHỨC NĂNG LƯU TIN ---
+      function saveNews(newsId) {
+        const csrftoken = getCookie('csrftoken');
+      
+        fetch('/save-news/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+          },
+          body: JSON.stringify({ news_id: newsId })
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Thành công!',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+              });
+            } else {
+              Swal.fire({
+                icon: 'info',
+                title: 'Thông báo',
+                text: data.message
+              });
+            }
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Lỗi',
+              text: 'Có lỗi xảy ra khi lưu tin.'
+            });
+          });
+      }
+
+      // --- 2. CHỨC NĂNG NGHE TÓM TẮT (TTS) ---
+      function playSummary() {
+        const textElement = document.getElementById('summary-content');
+        if (!textElement) return;
+
+        const text = textElement.innerText;
+        const audioPlayer = document.getElementById('audio-player');
+        const csrftoken = getCookie('csrftoken');
+        
+        // Hiển thị loading
+        Swal.fire({
+            title: 'Đang tạo giọng đọc...',
+            text: 'Vui lòng chờ trong giây lát',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading() }
+        });
+
+        fetch('/read-summary/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ text: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            Swal.close(); // Tắt loading
+            if (data.success) {
+                // Gán link vào player và phát
+                audioPlayer.src = data.audio_url;
+                audioPlayer.style.display = 'block';
+                audioPlayer.play();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: data.message || 'Không thể tạo âm thanh.'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.close();
+            console.error('TTS Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Không thể kết nối tới server.'
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,186 @@
+{% load static %}
+{% if messages %}
+<div class="container mt-3" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow" role="alert">
+        <strong>Thông báo:</strong> {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- ===== TOP HEADER ===== -->
+<div class="top-header">
+  <div class="container">
+    <div class="row align-items-center">
+      <!-- LOGO -->
+      <div class="col-lg-3 col-md-4 col-12 d-flex justify-content-lg-start justify-content-center">
+        <div class="logo">
+          <a href="{% url 'home' %}"><img src="{% static 'media/img/logo.jpg' %}" alt="News Logo" style="width:200px;height:100px;" /></a>
+        </div>
+      </div>
+
+      <div class="col-lg-6 col-md-4 col-12">
+        <div class="search">
+          <form id="searchForm" action="{% url 'search-result' %}" method="GET">
+            <div class="input-group">
+              <input type="text" id="chatInput" name="q" class="form-control" placeholder="Search news" value="{{ request.GET.q }}" aria-label="Search news" />
+
+              <div class="input-group-append">
+                <button type="button" id="micBtn" class="btn" title="Voice search" style="background:#FFC107; color:#fff; border: 1px solid #FFC107;"><i class="fas fa-microphone"></i></button>
+
+                <button type="submit" class="btn btn-primary" title="Search" style="background: #007bff; border: 1px solid #007bff;"><i class="fa fa-search"></i></button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- SOCIAL -->
+      <div class="col-lg-3 col-md-4 col-12">
+        <div class="social text-center text-lg-right d-flex justify-content-end align-items-center">
+          <div class="ml-3 border-left pl-3">
+            {% if user.is_authenticated %}
+              <div class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width: auto; height: auto; border: none; background: none; padding: 0;">
+                  <i class="fas fa-user-circle fa-lg" style="color: #E47A2E; font-size: 28px;"></i>
+                  <span class="d-none d-md-inline ml-1 small font-weight-bold text-dark">{{ user.username }}</span>
+                </a>
+
+                <div class="dropdown-menu dropdown-menu-right">
+                  <a class="dropdown-item" href="{% url 'saved_news' %}"><i class="fas fa-bookmark"></i> Tin đã lưu</a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
+                </div>
+              </div>
+            {% else %}
+              <a href="#" data-toggle="modal" data-target="#userAuthModal" title="Đăng nhập / Đăng ký"><i class="fas fa-user" style="color: #353535;"></i></a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% include 'user.html' %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN NAV ===== -->
+<div class="header">
+  <div class="container">
+    <nav class="navbar navbar-expand-md bg-dark navbar-dark">
+      <a href="#" class="navbar-brand">MENU</a>
+
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse"><span class="navbar-toggler-icon"></span></button>
+
+      <div class="collapse navbar-collapse justify-content-between" id="navbarCollapse">
+        <div class="navbar-nav m-auto">
+          <a href="{% url 'home' %}" class="nav-item nav-link">Trang chủ</a>
+          <a href="{% url 'category_news' 'sports' %}" class="nav-item nav-link">Thể thao</a>
+          <a href="{% url 'category_news' 'technology' %}" class="nav-item nav-link">Công nghệ</a>
+          <a href="{% url 'category_news' 'lifestyle' %}" class="nav-item nav-link">Đời sống</a>
+          <a href="{% url 'category_news' 'economics' %}" class="nav-item nav-link">Kinh tế</a>
+        </div>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ===== SEARCH VALIDATE ===== -->
+<script>
+  document.getElementById('searchForm').addEventListener('submit', function (e) {
+    const input = this.querySelector('input[name="q"]')
+    if (!input.value.trim()) {
+      e.preventDefault()
+      Swal.fire({
+        icon: 'warning',
+        title: 'Empty Search',
+        text: 'Please enter a keyword to find news!',
+        confirmButtonText: 'OK'
+      })
+    }
+  })
+</script>
+
+<!-- ===== VOICE SEARCH (STT) ===== -->
+<script>
+  const micBtn = document.getElementById('micBtn')
+  const chatInput = document.getElementById('chatInput')
+  const API_URL = '/transcribe/'
+  
+  let mediaRecorder
+  let audioChunks = []
+  let isRecording = false
+  
+  function getCookie(name) {
+    let value = null
+    if (document.cookie) {
+      document.cookie.split(';').forEach((c) => {
+        c = c.trim()
+        if (c.startsWith(name + '=')) {
+          value = decodeURIComponent(c.substring(name.length + 1))
+        }
+      })
+    }
+    return value
+  }
+  
+  micBtn.addEventListener('click', async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        mediaRecorder = new MediaRecorder(stream)
+        mediaRecorder.start()
+        isRecording = true
+  
+        micBtn.innerHTML = '<i class="fas fa-stop"></i>'
+        micBtn.style.background = '#dc3545'
+        chatInput.placeholder = 'Đang nghe...'
+  
+        audioChunks = []
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data)
+  
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(audioChunks, { type: 'audio/webm' })
+          const formData = new FormData()
+          formData.append('file', blob, 'voice.webm')
+  
+          try {
+            const res = await fetch(API_URL, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+              }
+            })
+  
+            const data = await res.json()
+            if (data.transcription) {
+              chatInput.value = data.transcription
+            } else {
+              Swal.fire('Error', data.error || 'Cannot recognize speech', 'error')
+            }
+          } catch (err) {
+            Swal.fire('Error', err.message, 'error')
+          } finally {
+            chatInput.placeholder = 'Search news...'
+          }
+        }
+      } catch {
+        Swal.fire('Error', 'Microphone permission denied', 'error')
+      }
+    } else {
+      mediaRecorder.stop()
+      mediaRecorder.stream.getTracks().forEach((t) => t.stop())
+      isRecording = false
+  
+      micBtn.innerHTML = '<i class="fas fa-microphone"></i>'
+      micBtn.style.background = '#FFC107'
+    }
+  })
+</script>

@@ -1,0 +1,130 @@
+{% load static %}
+{% load custom_filters %} {# <--- Dòng này quan trọng để nạp bộ dịch #}
+
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    {# Sử dụng filter để dịch Title #}
+    <title>{{ category.name|to_vietnamese }} - Tin Tức 24h</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap" rel="stylesheet" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet" />
+    <link href="{% static 'lib/slick/slick.css' %}" rel="stylesheet" />
+    <link href="{% static 'lib/slick/slick-theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/style.css' %}" rel="stylesheet" />
+  </head>
+
+  <body>
+    {% include 'header.html' %}
+
+    <div class="breadcrumb-wrap">
+        <div class="container">
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="#">Chuyên mục</a></li>
+                {# Dịch tên chuyên mục hiện tại trên thanh điều hướng #}
+                <li class="breadcrumb-item active">{{ category.name|to_vietnamese }}</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="main-news">
+      <div class="container-fluid">
+        <div class="row">
+          
+          <div class="col-md-8">
+            <div class="row">
+              <div class="col-md-12">
+                {# Tiêu đề lớn của trang #}
+                <h2><i class="fas fa-folder-open"></i> Tin tức {{ category.name|to_vietnamese }}</h2>
+                
+                <div class="row">
+                    {% for news in news_list %}
+                    <div class="col-md-12">
+                        <div class="mn-list">
+                            <div class="mn-img">
+                                <a href="{% url 'news-detail' news.id %}">
+                                    {% if news.image %}
+                                        <img src="{{ news.image.url }}" alt="{{ news.title }}" />
+                                    {% else %}
+                                        <img src="{% static 'media/img/news-350x223-default.jpg' %}" alt="Ảnh mặc định" />
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="mn-content">
+                                <a class="mn-title" href="{% url 'news-detail' news.id %}">{{ news.title }}</a>
+                                
+                                <a class="mn-date" href="{% url 'news-detail' news.id %}">
+                                    <i class="far fa-clock"></i> {{ news.created_at|date:'d-m-Y' }}
+                                </a>
+                                
+                                <p>
+                                    {# Cắt ngắn nội dung tóm tắt #}
+                                    {{ news.summary|truncatewords:30 }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-md-12">
+                        <div class="alert alert-warning text-center">
+                            Chưa có tin bài nào trong chuyên mục này.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="sidebar">
+              
+              <div class="sidebar-widget">
+                <h2><i class="fas fa-align-justify"></i> Chuyên mục</h2>
+                <div class="category">
+                  <ul class="fa-ul">
+                    {% for item in categories %}
+                      <li>
+                        <span class="fa-li"><i class="far fa-arrow-alt-circle-right"></i></span>
+                        <a href="{% url 'category_news' item.slug %}">
+                            {# Sử dụng filter để dịch từng mục trong danh sách #}
+                            {{ item.name|to_vietnamese }}
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+
+              <div class="sidebar-widget">
+                <h2><i class="fas fa-tags"></i> Từ khóa</h2>
+                <div class="tags">
+                  {% for item in categories %}
+                    <a href="{% url 'category_news' item.slug %}">
+                        {{ item.name|to_vietnamese }}
+                    </a>
+                  {% endfor %}
+                </div>
+              </div>
+
+            </div>
+          </div> </div>
+      </div>
+    </div>
+
+    {% include 'footer.html' %}
+    
+    <a href="#" class="back-to-top"><i class="fa fa-chevron-up"></i></a>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'lib/easing/easing.min.js' %}"></script>
+    <script src="{% static 'lib/slick/slick.min.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+  </body>
+</html>

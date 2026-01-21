@@ -1,0 +1,206 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <title>Tin đã lưu - News 24</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap" rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'lib/slick/slick.css' %}" rel="stylesheet">
+    <link href="{% static 'lib/slick/slick-theme.css' %}" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+</head>
+
+<body>
+    {% include 'header.html' %}
+
+    <div class="breadcrumb-wrap">
+        <div class="container">
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Trang chủ</a></li>
+                <li class="breadcrumb-item active">Tin đã lưu</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="main-news">
+        <div class="container-fluid">
+            <div class="row">
+                
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2 class="mb-4">
+                                <i class="fas fa-bookmark" style="color: #E47A2E;"></i> Tin Đã Lưu Của Bạn
+                            </h2>
+                            
+                            <div class="row">
+                                {% for item in saved_list %}
+                                <div class="col-md-12" id="saved-item-{{ item.news.id }}">
+                                    <div class="mn-list">
+                                        <div class="mn-img">
+                                            <a href="{% url 'news-detail' item.news.id %}">
+                                                {% if item.news.image %}
+                                                    <img src="{{ item.news.image.url }}" alt="{{ item.news.title }}" />
+                                                {% else %}
+                                                    <img src="{% static 'media/img/news-350x223-default.jpg' %}" alt="Default News" />
+                                                {% endif %}
+                                            </a>
+                                        </div>
+                                        
+                                        <div class="mn-content">
+                                            <a class="mn-title" href="{% url 'news-detail' item.news.id %}">
+                                                {{ item.news.title }}
+                                            </a>
+                                            
+                                            <a class="mn-date" href="#">
+                                                <i class="far fa-clock"></i> Đã lưu: {{ item.saved_at|date:'d-m-Y H:i' }}
+                                            </a>
+                                            
+                                            <p>
+                                                {{ item.news.summary|truncatewords:25 }}
+                                            </p>
+                                            
+                                            <button class="btn btn-sm btn-outline-danger mt-2" onclick="deleteSavedNews({{ item.news.id }})">
+                                                <i class="fas fa-trash-alt"></i> Bỏ lưu
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-md-12 text-center py-5">
+                                    <div class="mb-3">
+                                        <i class="far fa-folder-open fa-3x text-muted" style="opacity: 0.5;"></i>
+                                    </div>
+                                    <h5 class="text-muted">Bạn chưa lưu bài viết nào.</h5>
+                                    <p class="text-secondary">Hãy khám phá các tin tức mới và nhấn "Lưu tin" để xem lại sau nhé!</p>
+                                    <a href="{% url 'home' %}" class="btn btn-primary mt-2">Về trang chủ</a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="sidebar">
+                        <div class="sidebar-widget">
+                            <h2><i class="fas fa-align-justify"></i> Chuyên mục</h2>
+                            <div class="category">
+                                <ul class="fa-ul">
+                                    {% for cat in categories %}
+                                    <li>
+                                        <span class="fa-li"><i class="far fa-arrow-alt-circle-right"></i></span>
+                                        <a href="{% url 'category_news' cat.slug %}">
+                                            {# 2. Sử dụng Filter để dịch tự động #}
+                                            {{ cat.name|to_vietnamese }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    {% include 'footer.html' %}
+
+    <a href="#" class="back-to-top"><i class="fa fa-chevron-up"></i></a>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'lib/easing/easing.min.js' %}"></script>
+    <script src="{% static 'lib/slick/slick.min.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Hàm lấy Cookie chuẩn của Django
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function deleteSavedNews(newsId) {
+            Swal.fire({
+                title: 'Bạn chắc chắn chứ?',
+                text: "Bài viết này sẽ bị xoá khỏi danh sách đã lưu!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Vâng, xoá nó!',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const csrftoken = getCookie('csrftoken'); // Lấy token
+
+                    fetch('/delete-saved-news/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken 
+                        },
+                        body: JSON.stringify({'news_id': newsId})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Hiệu ứng xoá mượt mà
+                            const itemElement = document.getElementById('saved-item-' + newsId);
+                            if (itemElement) {
+                                itemElement.style.transition = "all 0.5s ease";
+                                itemElement.style.opacity = "0";
+                                itemElement.style.transform = "translateX(-20px)";
+                                
+                                setTimeout(() => {
+                                    itemElement.remove();
+                                    
+                                    // Nếu hết tin thì reload để hiện thông báo trống
+                                    const remainingItems = document.querySelectorAll('[id^="saved-item-"]');
+                                    if (remainingItems.length === 0) {
+                                        location.reload();
+                                    }
+                                }, 500);
+                            }
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Đã xoá!',
+                                text: data.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire('Lỗi', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire('Lỗi', 'Có lỗi xảy ra khi kết nối server.', 'error');
+                    });
+                }
+            })
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Search Results - News 24</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap" rel="stylesheet" />
+
+    <!-- CSS Libraries -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet" />
+    <link href="{% static 'lib/slick/slick.css' %}" rel="stylesheet" />
+    <link href="{% static 'lib/slick/slick-theme.css' %}" rel="stylesheet" />
+
+    <!-- Template Stylesheet -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet" />
+  </head>
+
+  <body>
+    {% include 'header.html' %}
+
+    <!-- Breadcrumb Start -->
+    <div class="breadcrumb-wrap">
+      <div class="container">
+        <ul class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a href="{% url 'home' %}">Home</a>
+          </li>
+          <li class="breadcrumb-item active">Search Results</li>
+        </ul>
+      </div>
+    </div>
+    <!-- Breadcrumb End -->
+
+    <!-- Search Results Section -->
+    <div class="single-news">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8">
+            <h2 class="mb-4">Search Results for: <span style="color: #FF6F61;">"{{ query }}"</span></h2>
+
+            {% if results %}
+              {% for news in results %}
+                <div class="sn-container" style="margin-bottom: 30px; border-bottom: 1px solid #ddd; padding-bottom: 20px;">
+                  <div class="row">
+                    <div class="col-md-4">
+                      {% if news.image %}
+                        <a href="{% url 'news-detail' news.id %}"><img src="{{ news.image.url }}" class="img-fluid" alt="{{ news.title }}" /></a>
+                      {% else %}
+                        <a href="{% url 'news-detail' news.id %}"><img src="{% static 'media/img/news-800x500-1.jpg' %}" class="img-fluid" alt="Placeholder" /></a>
+                      {% endif %}
+                    </div>
+                    <div class="col-md-8">
+                      <h3 class="sn-title"><a href="{% url 'news-detail' news.id %}">{{ news.title }}</a></h3>
+
+                      <div class="sn-date" style="font-size: 14px; color: #666; margin-bottom: 10px;">
+                        <i class="far fa-clock"></i> {{ news.published_at|date:'d-M-Y' }}
+                        &nbsp;|&nbsp;
+                        <i class="far fa-folder"></i> {{ news.category.name }}
+                      </div>
+                      <p>{{ news.summary|truncatewords:30 }}</p>
+
+                      <a href="{% url 'news-detail' news.id %}" class="btn btn-sm btn-outline-danger">Read More</a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="alert alert-warning">
+                <h4>No results found.</h4>
+                <p>
+                  We couldn't find any news matching "<strong>{{ query }}</strong>". Please try different keywords.
+                </p>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Sidebar (Optional) -->
+          <div class="col-lg-4">
+            <div class="sidebar">
+              <div class="sidebar-widget">
+                <h2 class="sw-title">In This Category</h2>
+                <div class="news-list">
+                  <!-- Add sidebar content here if needed -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Search Results End -->
+
+    <!-- Include Footer (Assuming you have a footer.html, otherwise paste footer code here) -->
+    <!-- For now, just closing tags -->
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'lib/easing/easing.min.js' %}"></script>
+    <script src="{% static 'lib/slick/slick.min.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+  </body>
+</html>
