@@ -1,1 +1,1 @@
-# Web_news_python
+Web tin tức có tích hợp sử dụng các mô hình AI
