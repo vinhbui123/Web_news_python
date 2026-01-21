@@ -59,6 +59,11 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            
+            'libraries': {
+                # thư viện custom_filters để dùng phiên dịch tiếng anh
+                'custom_filters': 'app.custom_filters', 
+            },
         },
     },
 ]
@@ -111,3 +116,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTHENTICATION_BACKENDS = [
+    'app.authentcate.Login',   # backend cho phần đăng nhập bằng email hoặc username
+    'django.contrib.auth.backends.ModelBackend', # backend mặc định của Django
+]
+
